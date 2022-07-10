@@ -5,40 +5,51 @@
 //SPDX-License-Idendifier: MIT 
 pragma solidity ^0.8.8;
 
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "./PriceConverter.sol";
+
+//132150 gas. Constant and immutable to pring gas down
+
+error NotOwner();
 
 contract FundMe {
 using PriceConverter for uint256;
 
-uint256 public minimumUsd = 50 * 1e18; // 1 * 10 **18
+uint256 public constant MINIMUM_USD = 50 * 1e18; // 1 * 10 **18
 
 address[] public funders;
 mapping(address => uint256) public addressToAmountFunded;
 
-address public owner;
+
+address public immutable i_owner;
 
 constructor(){
-owner = msg.sender;
+i_owner = msg.sender;
 }
 
 function fund() public payable {
-msg.value.getConversionRate();
-
 //want to be able to set a minimum fund amount 
 //1. How to we send ETH to this contract?
-require(msg.value.getConversionRate() >= minimumUsd, "Didn't send enough!"); // 1e18 = 1 * 10 **18 kümme astmes kaheksateist wei-d
+require(msg.value.getConversionRate() >= MINIMUM_USD, "You need to spend more ETH!"); // 1e18 = 1 * 10 **18 kümme astmes kaheksateist wei-d
 // 18 decimal places is amount in wei
 //What is reverting? Undo any action before, and send remaining gas back
+
+addressToAmountFunded[msg.sender] += msg.value;
 funders.push(msg.sender); 
-addressToAmountFunded(msg.sender) = msg.value;
 }
 
-function withdraw() public onlyOwner {
-    require (msg.sender == owner, "Sender is not owner!");
+modifier onlyOwner {
+    _;
+//    require(msg.sender == i_owner, "Sender is not owner!");
+if(msg.sender != i_owner) { revert NotOwner(); }
+_;
+}
+
+function withdraw() payable onlyOwner public {
     /*starting index, ending index, step amount */
-    for(uint256 funderIndex = 0, funderIndex < funders.length; funderIndex++){
-address funder = funders[fundersIndex];
-aadressToAmountfunded[funder] = 0;
+    for (uint256 funderIndex=0; funderIndex < funders.length; funderIndex++){
+address funder = funders[funderIndex];
+            addressToAmountFunded[funder] = 0;
     }
 //reset the array
 funders = new address[](0);
@@ -63,10 +74,22 @@ funders = new address[](0);
 require(callSuccess, "Call failed");
 }
 
-modifier onlyOwner {
-    _;
-    require(msg.sender == owner, "Sender is not owner!");
-
+//what happens if someone sends this contract ETH without calling fund function
+receive () external payable {
+fund();
 }
 
+fallback () external payable {
+fund();
 }
+}
+ // Ether is sent to contract
+    //      is msg.data empty?
+    //          /   \ 
+    //         yes  no
+    //         /     \
+    //    receive()?  fallback() 
+    //     /   \ 
+    //   yes   no
+    //  /        \
+    //receive()  fallback()
