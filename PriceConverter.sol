@@ -10,11 +10,11 @@ function getPrice() internal view returns (uint256) {
 //ABI 
 //Address 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419 // ETH / USD address https://docs.chain.link/docs/ethereum-addresses/
    AggregatorV3Interface priceFeed = AggregatorV3Interface(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
-    (,int256 price,,,) = priceFeed.latestRoundData();
+    (, int256 answer,,,) = priceFeed.latestRoundData();
     //ETH in terms of USD
     //3000.00000000
-    return uin256(price * 1e10); // 1**10 == 10000000000
-    }
+   return uint256 (answer * 10000000000); // 1**10 == 10000000000
+}
 
 function getVersion() public view returns (uint256) {
 AggregatorV3Interface priceFeed = AggregatorV3Interface(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
